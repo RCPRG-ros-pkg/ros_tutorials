@@ -23,7 +23,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     rospy.init_node('siu_example', anonymous=False)
     turtle_api = TurtlesimSIU.TurtlesimSIU()
-    rate = rospy.Rate(1)
+    rate = rospy.Rate(10)
     set_pen_req = turtlesim.srv.SetPenRequest(r=255, g=255, b=255, width=5, off=0)
     #set_pen_req = turtlesim.srv.SetPenRequest(r=255, g=255, b=255, width=5, off=1)
     if turtle_api.hasTurtle('turtle1'):
@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
         print( turtle_api.setPen('turtle1',set_pen_req))
         cmd = Twist()
-        cmd.linear.x = 0.0 
+        cmd.linear.x = 0.3 
         cmd.linear.y = 0.0
         cmd.angular.z = 0.0 # theta
         if turtle_api.hasTurtle('turtle1'):

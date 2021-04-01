@@ -42,6 +42,10 @@
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
+#include <mutex>          // std::mutex
+#include <unistd.h>
+std::mutex mtx;           // mutex for critical section
+
 
 #define DEFAULT_BG_R 0x45
 #define DEFAULT_BG_G 0x56
@@ -56,6 +60,8 @@
 #define G_MIN 0
 #define G_MAX 255
 #define G_CENTER 0
+#define turtle_size_meters 1
+
 namespace turtlesim
 {
 
@@ -67,6 +73,8 @@ TurtleFrame::TurtleFrame(QWidget* parent, Qt::WindowFlags f)
 , id_counter_(0)
 , private_nh_("~")
 {
+
+  mtx.unlock();
   setFixedSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
   setWindowTitle("TurtleSim");
   QImage start_image_ = path_image_;
@@ -177,6 +185,7 @@ bool TurtleFrame::hasTurtleCallback(turtlesim::HasTurtle::Request& req, turtlesi
 
 bool TurtleFrame::spawnCallback(turtlesim::Spawn::Request& req, turtlesim::Spawn::Response& res)
 {
+
   std::string name = spawnTurtle(req.name, req.x, req.y, req.theta);
   if (name.empty())
   {
@@ -191,22 +200,29 @@ bool TurtleFrame::spawnCallback(turtlesim::Spawn::Request& req, turtlesim::Spawn
 
 bool TurtleFrame::killCallback(turtlesim::Kill::Request& req, turtlesim::Kill::Response&)
 {
+  mtx.lock();
   M_Turtle::iterator it = turtles_.find(req.name);
   if (it == turtles_.end())
   {
     ROS_ERROR("Tried to kill turtle [%s], which does not exist", req.name.c_str());
+  mtx.unlock();
     return false;
   }
 
   turtles_.erase(it);
   update();
-
+  // usleep(1000*50);
+  mtx.unlock();
   return true;
 }
 
 bool TurtleFrame::hasTurtle(const std::string& name)
 {
-  return turtles_.find(name) != turtles_.end();
+
+  mtx.lock();
+  bool resp = turtles_.find(name) != turtles_.end();
+  mtx.unlock();
+  return resp;
 }
 
 std::string TurtleFrame::spawnTurtle(const std::string& name, float x, float y, float angle)
@@ -218,6 +234,8 @@ bool TurtleFrame::getCameraImageCallback(turtlesim::GetCameraImage::Request& req
 {
 	TurtlePtr t = turtles_[req.name];
 	turtlesim::Pose pose = t->getPose();
+  std::vector<Pose> all_poses = getNeighbours(req.name);
+
     // ROS_ERROR("pose.theta: %f",pose.theta);
 	if (pose.theta < 0)
 	{
@@ -357,12 +375,13 @@ switch(path_image_.format()) {
                                           - sin(pose.theta)*(cell_x_in_turtle_frame)
                                           ;
 
-      float cell_center_x_in_img_meter = pose.x + cos(pose.theta)*(cell_x_in_turtle_frame+req.x_offset)
-                                          + sin(pose.theta)*(cell_y_in_turtle_frame-req.frame_pixel_size/2)
+      float cell_center_x_in_img_meter = pose.x + cos(pose.theta)*(cell_x_in_turtle_frame/meter_)
+                                          + sin(pose.theta)*(cell_y_in_turtle_frame/meter_)
                                           ;
-      float cell_center_y_in_img_meter = pose.y + cos(pose.theta)*(cell_y_in_turtle_frame-req.frame_pixel_size/2)
-                                          - sin(pose.theta)*(cell_x_in_turtle_frame+req.x_offset)
+      float cell_center_y_in_img_meter = pose.y + cos(pose.theta)*(cell_y_in_turtle_frame/meter_)
+                                          - sin(pose.theta)*(cell_x_in_turtle_frame/meter_) - float(float(DEFAULT_HEIGHT)/float(meter_))
                                           ;
+
       // for (int i = 0; i < poses.size(); ++i)
       // {
       //   if 
@@ -401,6 +420,35 @@ switch(path_image_.format()) {
       cell.distance = sqrt(pow(goal_x-cell_center_x_in_img,2)+pow(goal_y-cell_center_y_in_img,2))/meter_;
       if (req.show_matrix_cells_and_goal)
           cv::circle(original_cv_points,cv::Point(goal_x, goal_y), 5, cv::Scalar(0,255,0), -1);
+      
+      if (all_poses.size() < 1)
+        cell.occupy = 1;
+      else
+      {
+          for (std::vector<Pose>::iterator i = all_poses.begin(); i != all_poses.end(); ++i)
+          {
+
+            if (req.show_matrix_cells_and_goal)
+              cv::circle(original_cv_points,cv::Point((int)floor(i->x*meter_), (int)floor(float(DEFAULT_HEIGHT)-i->y*meter_)), meter_, cv::Scalar(0,0,0),-1);
+            float turtle_dist_pixel = sqrt(pow((float(cell_center_x_in_img)-i->x*meter_),2)
+                                          +pow((float(cell_center_y_in_img)-(float(DEFAULT_HEIGHT)-i->y*meter_)),2));
+            // ROS_ERROR("Dist: {%f}", turtle_dist_meter);
+            // ROS_ERROR("X_cell: {%f}", cell_center_x_in_img_meter);
+            // ROS_ERROR("X: {%f}", i->x);
+            // ROS_ERROR("dist_X: {%f}", abs(float(cell_center_x_in_img_meter)-i->x));
+            // ROS_ERROR("Y: {%f}", i->y);
+            // ROS_ERROR("Y_cell: {%f}", cell_center_y_in_img_meter);
+            // ROS_ERROR("S_cell_width_pixels: {%i}", S_cell_width_pixels);
+            float min_dist = floor(S_cell_width_pixels/2)+turtle_size_meters*meter_;
+            // ROS_ERROR("min_dist: {%f}", min_dist);
+            if (turtle_dist_pixel<=min_dist)
+            {
+              cell.occupy = 0;
+              break;
+            }else
+              cell.occupy = 1;
+          }
+      }
       m_row.cells.push_back(cell);
 		  // ROS_ERROR("CELL_{%i}_{%i}: R={%f}, G={%f}, B={%f}", cell_k, cell_j, cell.red, cell.green, cell.blue);
 		  // ROS_ERROR("req.goal.x={%i}, req.goal.y={%i}", goal_x, goal_y);
@@ -444,12 +492,14 @@ std::string TurtleFrame::spawnTurtle(const std::string& name, float x, float y, 
     }
   }
 
+  mtx.lock();
   TurtlePtr t(new Turtle(ros::NodeHandle(real_name), turtle_images_[index], QPointF(x, height_in_meters_ - y), angle));
   turtles_[real_name] = t;
   update();
 
   ROS_INFO("Spawning turtle [%s] at x=[%f], y=[%f], theta=[%f]", real_name.c_str(), x, y, angle);
 
+  mtx.unlock();
   return real_name;
 }
 
@@ -483,10 +533,31 @@ bool TurtleFrame::getTurtlesCallback(turtlesim::GetTurtles::Request& req, turtle
 
 bool TurtleFrame::getPoseCallback(turtlesim::GetPose::Request& req, turtlesim::GetPose::Response& res)
 {
-	TurtlePtr t = turtles_[req.name];
-	res.pose = t->getPose();
-	return true;
-}
+  if(hasTurtle(req.name)){
+  TurtlePtr t = turtles_[req.name];
+  res.pose = t->getPose();
+  return true;
+  }else
+    return false;
+  }
+
+std::vector<Pose> TurtleFrame::getNeighbours(std::string& t_name)
+{
+  std::vector<Pose> poses;
+  if(hasTurtle(t_name)){
+    mtx.lock();
+
+    M_Turtle::iterator it = turtles_.begin();
+    M_Turtle::iterator end = turtles_.end();
+    for (; it != end; ++it)
+    {
+      if (it->first != t_name)
+        poses.push_back(it->second->getPose());
+    }
+    mtx.unlock();
+  }
+  return poses;
+  }
 
 void TurtleFrame::onUpdate()
 {
@@ -501,6 +572,7 @@ void TurtleFrame::onUpdate()
 
 void TurtleFrame::paintEvent(QPaintEvent*)
 {
+  mtx.lock();
   QPainter painter(this);
 
   painter.drawImage(QPoint(0, 0), path_image_);
@@ -511,13 +583,16 @@ void TurtleFrame::paintEvent(QPaintEvent*)
   {
     it->second->paint(painter);
   }
+  mtx.unlock();
 }
 
 void TurtleFrame::updateTurtles()
 {
+  mtx.lock();
   if (last_turtle_update_.isZero())
   {
-    last_turtle_update_ = ros::WallTime::now();
+    last_turtle_update_ = ros::WallTime::now();  
+    mtx.unlock();
     return;
   }
 
@@ -534,6 +609,7 @@ void TurtleFrame::updateTurtles()
   }
 
   ++frame_count_;
+  mtx.unlock();
 }
 
 

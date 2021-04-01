@@ -50,7 +50,7 @@ if __name__ == "__main__":
     if VISUALIZE:
         fig = plt.figure(figsize=(16,12))
         
-        axR = fig.add_subplot(141)#plt.subplots(1,3)
+        axR = fig.add_subplot(151)#plt.subplots(1,3)
         fig.suptitle("RGB matrices")
         axR.set_title("R")
         im_r = axR.imshow(np.zeros((4,4)), norm=plt.Normalize(vmin=-1, vmax=1),cmap='hot')
@@ -59,25 +59,33 @@ if __name__ == "__main__":
         divider = make_axes_locatable(axR)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         fig.colorbar(im_r,cax=cax, orientation='vertical')
-        axG = fig.add_subplot(142)#plt.subplots(1,3)
+        axG = fig.add_subplot(152)#plt.subplots(1,3)
         axG.set_title("G")
         im_g = axG.imshow(np.zeros((4,4)), norm=plt.Normalize(vmin=0, vmax=255),cmap='hot')
         divider = make_axes_locatable(axG)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         fig.colorbar(im_g,cax=cax, orientation='vertical')
-        axB = fig.add_subplot(143)#plt.subplots(1,3)
+        axB = fig.add_subplot(153)#plt.subplots(1,3)
         axB.set_title("B")
         divider = make_axes_locatable(axB)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         im_b = axB.imshow(np.zeros((4,4)), norm=plt.Normalize(vmin=-1, vmax=1),cmap='hot')
         fig.colorbar(im_b,cax=cax, orientation='vertical')
 
-        axD = fig.add_subplot(144)#plt.subplots(1,3)
+        axD = fig.add_subplot(154)#plt.subplots(1,3)
         axD.set_title("D")
         divider = make_axes_locatable(axD)
         cax = divider.append_axes('right', size='5%', pad=0.1)
         im_b = axD.imshow(np.zeros((4,4)), norm=plt.Normalize(vmin=-1, vmax=1),cmap='hot')
         fig.colorbar(im_b,cax=cax, orientation='vertical')
+        fig.tight_layout(pad=1)
+
+        axO = fig.add_subplot(155)#plt.subplots(1,3)
+        axO.set_title("O")
+        divider = make_axes_locatable(axO)
+        cax = divider.append_axes('right', size='5%', pad=0.1)
+        im_o = axO.imshow(np.zeros((4,4)), norm=plt.Normalize(),cmap='hot')
+        fig.colorbar(im_o,cax=cax, orientation='vertical')
         fig.tight_layout(pad=1)
     while not rospy.is_shutdown():
         print ('POSE:')
@@ -123,6 +131,8 @@ if __name__ == "__main__":
             b_row = np.zeros(len(img_response.m_rows[0].cells))
             dist_matrix = np.zeros((len(img_response.m_rows[0].cells),len(img_response.m_rows)))
             dist_row = np.zeros(len(img_response.m_rows[0].cells))
+            occupy_matrix = np.zeros((len(img_response.m_rows[0].cells),len(img_response.m_rows)))
+            occupy_row = np.zeros(len(img_response.m_rows[0].cells))
         # g_matrix = cv2.CreateMat((len(row.cells),len(img_response.m_rows)),no_of_bits,channels)
         # b_matrix = cv2.CreateMat((len(row.cells),len(img_response.m_rows)),no_of_bits,channels) 
         for row in img_response.m_rows:
@@ -132,17 +142,20 @@ if __name__ == "__main__":
                 g_row[j] = cell.green
                 b_row[j] = cell.blue
                 dist_row[j] = cell.distance
+                occupy_row[j] = cell.occupy
                 print( "row:  {}", r_row)
                 print( "\tCELL_"+str(i)+"_"+str(j)+":" )
                 print( "\t\tR:  {}", cell.red)
                 print( "\t\tG:  {}", cell.green)
                 print( "\t\tB:  {}", cell.blue)
                 print( "\t\tDist:  {}", cell.distance)
+                print( "\t\tOccupy:  {}", cell.occupy)
                 j +=1
             r_matrix[i]=r_row
             g_matrix[i]=g_row
             b_matrix[i]=b_row
             dist_matrix[i]=dist_row
+            occupy_matrix[i]=occupy_row
             i += 1
 
         if VISUALIZE:
@@ -151,6 +164,7 @@ if __name__ == "__main__":
             axB.imshow(b_matrix, norm=plt.Normalize(vmin=-1, vmax=1),cmap='hot')
             axB.imshow(b_matrix, norm=plt.Normalize(vmin=-1, vmax=1),cmap='hot')
             axD.imshow(dist_matrix, norm=plt.Normalize(),cmap='hot')
+            axO.imshow(occupy_matrix, norm=plt.Normalize(vmin=0, vmax=1),cmap='hot')
             # im_r = plt.imshow(r_matrix, norm=plt.Normalize(vmin=-1, vmax=1),cmap='hot')
             # im_g = plt.imshow(g_matrix, norm=plt.Normalize(vmin=0, vmax=255),cmap='hot')
             # im_b = plt.imshow(b_matrix, norm=plt.Normalize(vmin=-1, vmax=1),cmap='hot')

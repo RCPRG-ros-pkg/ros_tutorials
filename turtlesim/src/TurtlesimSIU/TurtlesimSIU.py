@@ -108,8 +108,8 @@ class TurtlesimSIU():
 		req = KillRequest()
 		req.name = turtle_name
 		print( self.kill_turtle(req))
-		self.vel_publishers = [i for i in self.vel_publishers if not (self.vel_publishers['name'] == turtle_name)]
-		self.teleport_srvs = [i for i in self.teleport_srvs if not (self.teleport_srvs['name'] == turtle_name)]
+		self.vel_publishers = [i for i in self.vel_publishers if not (i['name'] == turtle_name)]
+		self.teleport_srvs = [i for i in self.teleport_srvs if not (i['name'] == turtle_name)]
 
 	def spawnTurtle(self, turtle_name, pose):
 		"""! Spawns the given turtle in the given localisation.

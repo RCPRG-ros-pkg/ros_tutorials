@@ -74,6 +74,7 @@ private:
   void updateTurtles();
   void clear();
   bool hasTurtle(const std::string& name);
+  std::vector<Pose> getNeighbours(std::string& t_name);
 
   bool clearCallback(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
   bool resetCallback(std_srvs::Empty::Request&, std_srvs::Empty::Response&);
