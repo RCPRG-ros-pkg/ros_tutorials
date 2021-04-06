@@ -49,8 +49,18 @@ class TurtlesimSIU():
 		self.get_camera_image = rospy.ServiceProxy('get_camera_image', turtlesim.srv.GetCameraImage)
 		self.has_turtle = rospy.ServiceProxy('has_turtle', turtlesim.srv.HasTurtle)
 		self.kill_turtle = rospy.ServiceProxy('kill', turtlesim.srv.Kill)
+		self.get_frame_size = rospy.ServiceProxy('get_frame_size', turtlesim.srv.GetFrameSize)
 		self.vel_publishers = []
 		self.teleport_srvs = []
+
+	def getFrameSize(self):
+		"""! Returns size of the environment.
+        @return  is an object : <br>
+        float32 width<br> (unit: meter)
+		float32 height<br> (unit: meter)
+        """
+		frame_size = self.get_frame_size()
+		return frame_size
 
 	def getPose(self, turtle_name):
 		"""! Returns current pose of the given turtle.

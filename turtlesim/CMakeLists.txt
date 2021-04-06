@@ -24,6 +24,7 @@ add_service_files(DIRECTORY srv FILES
                   GetTurtles.srv
                   GetSonar.srv
                   GetCameraImage.srv
+                  GetFrameSize.srv
                   HasTurtle.srv)
 generate_messages(DEPENDENCIES geometry_msgs std_msgs std_srvs sensor_msgs)
 

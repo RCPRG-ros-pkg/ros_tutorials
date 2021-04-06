@@ -145,6 +145,7 @@ TurtleFrame::TurtleFrame(QWidget* parent, Qt::WindowFlags f)
   get_pose_srv_ = nh_.advertiseService("get_pose", &TurtleFrame::getPoseCallback, this);
   get_camera_image_srv_ = nh_.advertiseService("get_camera_image", &TurtleFrame::getCameraImageCallback, this);
   has_turtle_srv_ = nh_.advertiseService("has_turtle", &TurtleFrame::hasTurtleCallback, this);
+  get_frame_size_srv_ = nh_.advertiseService("get_frame_size", &TurtleFrame::getFrameSizeCallback, this);
 
   ROS_INFO("Starting turtlesim with node name %s", ros::this_node::getName().c_str()) ;
 
@@ -629,5 +630,13 @@ bool TurtleFrame::resetCallback(std_srvs::Empty::Request&, std_srvs::Empty::Resp
   clear();
   return true;
 }
+bool TurtleFrame::getFrameSizeCallback(turtlesim::GetFrameSize::Request& req, turtlesim::GetFrameSize::Response& res)
+{
+
+  res.width = width_in_meters_;
+  res.height = height_in_meters_;
+  return true;
+}
+
 
 }
