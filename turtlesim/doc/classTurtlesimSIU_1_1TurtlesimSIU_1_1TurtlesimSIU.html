@@ -443,7 +443,7 @@ Public Attributes</h2></td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>The NxN matrix, and each cell of the matrix has 4 fields: cell.red, cell.green, cell.blue, cell.distance. The latter is the distance to the specified goal. The size 'N' of the matrix is a square root of cell_count argument. </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>The NxN matrix, and each cell of the matrix has 5 fields: cell.red, cell.green, cell.blue, cell.distance, cell.occupy. The cell.distance field indicates the distance from the cell's centre to the specified goal. The cell.occupy field indicates if the cell is occupied by another turtle. The size 'N' of the matrix is a square root of cell_count argument. </dd></dl>
 
 </div>
 </div>
